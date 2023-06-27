@@ -9,6 +9,10 @@ edition = "2021"
 name = "scheme_benchmark"
 harness = false
 
+[[bench]]
+name = "scheme_verification_benchmark"
+harness = false
+
 [dev-dependencies]
 criterion = "0.3"
 
@@ -28,3 +32,4 @@ digest = "0.10.5"
 bincode = "1.3.3"
 serde = { version = "1.0", features = ["derive"] }
 cool_asserts = "2.0.3"
+serde_with = "3.0.0"

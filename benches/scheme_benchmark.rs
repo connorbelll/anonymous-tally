@@ -39,8 +39,8 @@ fn scheme(c: &mut Criterion) {
             |()| {
                 let keys = scheme_kgen();
 
-                PRFS::new(keys.pk1, keys.sk1, keys.sk3);
-                VERIFY::new(keys.sk2, keys.sk3);
+                Server1::new(keys.pk1, keys.sk1, keys.sk_s);
+                Server2::new(keys.sk2, keys.sk_s);
             },
             BatchSize::SmallInput,
         );
@@ -54,19 +54,19 @@ fn scheme(c: &mut Criterion) {
                 let mut csprng = OsRng;
                 csprng.fill_bytes(&mut uid);
 
-                let prfs = PRFS::new(keys.pk1, keys.sk1, keys.sk3);
+                let server1 = Server1::new(keys.pk1.clone(), keys.sk1.clone(), keys.sk_s);
 
-                (keys, uid, prfs)
+                (keys, uid, server1)
             },
-            |(keys, uid, mut prfs)| {
+            |(keys, uid, mut server1)| {
                 let user_sk = random_scalar();
-                register_new_user(keys.pk1, keys.pk2, uid, user_sk, &mut prfs);
+                register_new_user(keys.pk1, keys.pk2, uid, user_sk, &mut server1);
             },
             BatchSize::SmallInput,
         );
     });
 
-    group.bench_function("client create a mask", |b| {
+    group.bench_function("client create a phase1_output", |b| {
         b.iter_batched(
             || {
                 let keys = scheme_kgen();
@@ -79,8 +79,14 @@ fn scheme(c: &mut Criterion) {
 
                 let user_sk = random_scalar();
 
-                let mut prfs = PRFS::new(keys.pk1, keys.sk1, keys.sk3);
-                let user = register_new_user(keys.pk1, keys.pk2, uid, user_sk, &mut prfs);
+                let mut server1 = Server1::new(keys.pk1.clone(), keys.sk1, keys.sk_s);
+                let user = register_new_user(
+                    keys.pk1.clone(),
+                    keys.pk2.clone(),
+                    uid,
+                    user_sk,
+                    &mut server1,
+                );
 
                 (user, report)
             },
@@ -91,7 +97,7 @@ fn scheme(c: &mut Criterion) {
         );
     });
 
-    group.bench_function("PRF/S verify proof and exponentiate", |b| {
+    group.bench_function("Server 1 verify proof and exponentiate", |b| {
         b.iter_batched(
             || {
                 let keys = scheme_kgen();
@@ -104,15 +110,22 @@ fn scheme(c: &mut Criterion) {
 
                 let user_sk = random_scalar();
 
-                let mut prfs = PRFS::new(keys.pk1, keys.sk1, keys.sk3);
-                let user = register_new_user(keys.pk1, keys.pk2, uid, user_sk, &mut prfs);
+                let mut server1 = Server1::new(keys.pk1.clone(), keys.sk1, keys.sk_s);
+                let user = register_new_user(
+                    keys.pk1.clone(),
+                    keys.pk2.clone(),
+                    uid,
+                    user_sk,
+                    &mut server1,
+                );
 
-                let (r, mask) = user.report_phase1(report);
+                let (r, phase1_output) = user.report_phase1(report);
 
-                (user, report, r, prfs, mask)
+                (user, report, r, server1, phase1_output)
             },
-            |(user, report, r, prfs, mask)| {
-                user.invoke_phase2(report, r, &prfs, &mask).unwrap();
+            |(user, report, r, server1, phase1_output)| {
+                user.invoke_phase2(report, r, &server1, &phase1_output)
+                    .unwrap();
             },
             BatchSize::SmallInput,
         );
@@ -131,16 +144,19 @@ fn scheme(c: &mut Criterion) {
 
                 let user_sk = random_scalar();
 
-                let mut prfs = PRFS::new(keys.pk1, keys.sk1, keys.sk3);
-                let user = register_new_user(keys.pk1, keys.pk2, uid, user_sk, &mut prfs);
+                let mut server1 = Server1::new(keys.pk1.clone(), keys.sk1, keys.sk_s);
+                let user =
+                    register_new_user(keys.pk1.clone(), keys.pk2, uid, user_sk, &mut server1);
 
-                let (r, mask) = user.report_phase1(report);
-                let (report_pt, proof) = user.invoke_phase2(report, r, &prfs, &mask).unwrap();
+                let (r, phase1_output) = user.report_phase1(report);
+                let (report_pt, proof) = user
+                    .invoke_phase2(report, r, &server1, &phase1_output)
+                    .unwrap();
 
-                (user, report_pt, proof, mask)
+                (user, report_pt, proof, phase1_output)
             },
-            |(user, report_pt, proof, mask)| {
-                user.verify_exponentiation(&report_pt, &mask, &proof)
+            |(user, report_pt, proof, phase1_output)| {
+                user.verify_exponentiation(&report_pt, &phase1_output, &proof)
                     .unwrap();
             },
             BatchSize::SmallInput,
@@ -160,16 +176,19 @@ fn scheme(c: &mut Criterion) {
 
                 let user_sk = random_scalar();
 
-                let mut prfs = PRFS::new(keys.pk1, keys.sk1, keys.sk3);
-                let user = register_new_user(keys.pk1, keys.pk2, uid, user_sk, &mut prfs);
+                let mut server1 = Server1::new(keys.pk1.clone(), keys.sk1, keys.sk_s);
+                let user =
+                    register_new_user(keys.pk1.clone(), keys.pk2, uid, user_sk, &mut server1);
 
-                let (r, mask) = user.report_phase1(report);
-                let (report_pt, _proof) = user.invoke_phase2(report, r, &prfs, &mask).unwrap();
+                let (r, phase1_output) = user.report_phase1(report);
+                let (report_pt, _proof) = user
+                    .invoke_phase2(report, r, &server1, &phase1_output)
+                    .unwrap();
 
-                (user, report_pt, prfs)
+                (user, report_pt, server1)
             },
-            |(user, report_pt, prfs)| {
-                user.report_phase3(&report_pt, &prfs);
+            |(user, report_pt, server1)| {
+                user.report_phase3(&report_pt, &server1);
             },
             BatchSize::SmallInput,
         );
@@ -188,13 +207,14 @@ fn scheme(c: &mut Criterion) {
 
                 let user_sk = random_scalar();
 
-                let mut prfs = PRFS::new(keys.pk1, keys.sk1, keys.sk3);
-                let user = register_new_user(keys.pk1, keys.pk2, uid, user_sk, &mut prfs);
+                let mut server1 = Server1::new(keys.pk1.clone(), keys.sk1, keys.sk_s);
+                let user =
+                    register_new_user(keys.pk1.clone(), keys.pk2, uid, user_sk, &mut server1);
 
-                (user, report, prfs)
+                (user, report, server1)
             },
-            |(user, report, prfs)| {
-                user.report(report, &prfs).unwrap();
+            |(user, report, server1)| {
+                user.report(report, &server1).unwrap();
             },
             BatchSize::SmallInput,
         );
@@ -213,16 +233,17 @@ fn scheme(c: &mut Criterion) {
 
                 let user_sk = random_scalar();
 
-                let mut prfs = PRFS::new(keys.pk1, keys.sk1, keys.sk3);
-                let verify = VERIFY::new(keys.sk2, keys.sk3);
-                let user = register_new_user(keys.pk1, keys.pk2, uid, user_sk, &mut prfs);
+                let mut server1 = Server1::new(keys.pk1.clone(), keys.sk1, keys.sk_s);
+                let server2 = Server2::new(keys.sk2, keys.sk_s);
+                let user =
+                    register_new_user(keys.pk1.clone(), keys.pk2, uid, user_sk, &mut server1);
 
-                let ct = user.report(report, &prfs).unwrap();
+                let ct = user.report(report, &server1).unwrap();
 
-                (verify, ct)
+                (server2, ct)
             },
-            |(verify, ct)| {
-                verify.verify(&ct).unwrap();
+            |(server2, ct)| {
+                server2.verify(&ct).unwrap();
             },
             BatchSize::SmallInput,
         );

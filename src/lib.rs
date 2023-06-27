@@ -3,5 +3,7 @@ pub mod encrypt;
 pub mod group_operations;
 pub mod mac;
 pub mod prove_dlog;
+pub mod prove_dlog_or;
 pub mod scheme;
+pub mod scheme_verification;
 pub mod wire_sizeof;
