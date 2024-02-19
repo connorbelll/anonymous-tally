@@ -6,12 +6,15 @@ use curve25519_dalek::scalar::Scalar;
 pub fn produce_challenge(
     leading_byte: u8,
     report: [u8; 32],
+    duptag: CompressedRistretto,
     w_values: &Vec<CompressedRistretto>,
-    y_values: &Vec<CompressedRistretto>,
+    t_values: &Vec<CompressedRistretto>,
+    y1_values: &Vec<CompressedRistretto>,
+    y2_values: &Vec<CompressedRistretto>,
 ) -> Scalar {
     let bitstring = format!(
-        "report: {:?} w_values: {:?} y_values: {:?}",
-        report, w_values, y_values
+        "report: {:?} duptag: {:?} w_values: {:?} t_values: {:?} y1_values: {:?} y2_values: {:?}",
+        report, duptag, w_values, t_values, y1_values, y2_values
     )
     .into_bytes();
 

@@ -7,8 +7,9 @@ use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 use openssl::pkey::{PKey, Private, Public};
-use rand::rngs::OsRng;
+use rand::rngs::StdRng;
 use rand::RngCore;
+use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -58,7 +59,7 @@ pub fn scheme_kgen() -> RAKeys {
 
     let (sk2, pk2) = kgen();
 
-    let mut csprng = OsRng;
+    let mut csprng = StdRng::from_entropy();
     let mut sk_s = [0u8; 32];
     csprng.fill_bytes(&mut sk_s);
 

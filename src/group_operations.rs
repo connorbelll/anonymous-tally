@@ -1,6 +1,7 @@
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use rand::rngs::OsRng;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 use sha2::Sha512;
 
 /// Performs an exponentiation with a point and a scalar.
@@ -37,12 +38,12 @@ pub fn hash_to_scalar(bytes: &[u8]) -> Scalar {
 
 /// Return a random scalar using OS randomness.
 pub fn random_scalar() -> Scalar {
-    let mut csprng = OsRng;
+    let mut csprng = StdRng::from_entropy();
     Scalar::random(&mut csprng)
 }
 
 pub fn random_point() -> RistrettoPoint {
-    let mut csprng = OsRng;
+    let mut csprng = StdRng::from_entropy();
     RistrettoPoint::random(&mut csprng)
 }
 

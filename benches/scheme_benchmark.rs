@@ -2,8 +2,9 @@ use anonymous_message_report_counting::group_operations::*;
 use anonymous_message_report_counting::scheme::*;
 
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use rand::rngs::OsRng;
+use rand::rngs::StdRng;
 use rand::RngCore;
+use rand::SeedableRng;
 use sha2_10::{Digest, Sha256};
 use std::time::Duration;
 
@@ -16,7 +17,7 @@ fn scheme(c: &mut Criterion) {
                 // The Report metadata takes 160 bytes, so for a 1KB plaintext we would have 1,184 bytes
                 // as input to the hash function.
                 let mut report_in = [0u8; 1184];
-                let mut csprng = OsRng;
+                let mut csprng = StdRng::from_entropy();
                 csprng.fill_bytes(&mut report_in);
 
                 report_in
@@ -51,7 +52,7 @@ fn scheme(c: &mut Criterion) {
             || {
                 let keys = scheme_kgen();
                 let mut uid = [0u8; 16];
-                let mut csprng = OsRng;
+                let mut csprng = StdRng::from_entropy();
                 csprng.fill_bytes(&mut uid);
 
                 let server1 = Server1::new(keys.pk1.clone(), keys.sk1.clone(), keys.sk_s);
@@ -73,7 +74,7 @@ fn scheme(c: &mut Criterion) {
                 let mut uid = [0u8; 16];
                 let mut report = [1u8; 32];
 
-                let mut csprng = OsRng;
+                let mut csprng = StdRng::from_entropy();
                 csprng.fill_bytes(&mut uid);
                 csprng.fill_bytes(&mut report);
 
@@ -104,7 +105,7 @@ fn scheme(c: &mut Criterion) {
                 let mut uid = [0u8; 16];
                 let mut report = [1u8; 32];
 
-                let mut csprng = OsRng;
+                let mut csprng = StdRng::from_entropy();
                 csprng.fill_bytes(&mut uid);
                 csprng.fill_bytes(&mut report);
 
@@ -138,7 +139,7 @@ fn scheme(c: &mut Criterion) {
                 let mut uid = [0u8; 16];
                 let mut report = [1u8; 32];
 
-                let mut csprng = OsRng;
+                let mut csprng = StdRng::from_entropy();
                 csprng.fill_bytes(&mut uid);
                 csprng.fill_bytes(&mut report);
 
@@ -170,7 +171,7 @@ fn scheme(c: &mut Criterion) {
                 let mut uid = [0u8; 16];
                 let mut report = [1u8; 32];
 
-                let mut csprng = OsRng;
+                let mut csprng = StdRng::from_entropy();
                 csprng.fill_bytes(&mut uid);
                 csprng.fill_bytes(&mut report);
 
@@ -201,7 +202,7 @@ fn scheme(c: &mut Criterion) {
                 let mut uid = [0u8; 16];
                 let mut report = [1u8; 32];
 
-                let mut csprng = OsRng;
+                let mut csprng = StdRng::from_entropy();
                 csprng.fill_bytes(&mut uid);
                 csprng.fill_bytes(&mut report);
 
@@ -227,7 +228,7 @@ fn scheme(c: &mut Criterion) {
                 let mut uid = [0u8; 16];
                 let mut report = [1u8; 32];
 
-                let mut csprng = OsRng;
+                let mut csprng = StdRng::from_entropy();
                 csprng.fill_bytes(&mut uid);
                 csprng.fill_bytes(&mut report);
 
